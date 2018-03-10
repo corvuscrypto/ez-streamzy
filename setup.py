@@ -8,5 +8,4 @@ setup(
     author='Clifford Richardson',
     author_email='cmrallen@gmail.com',
     install_requires=[],
-    tests_require=["pytest"]
 )
