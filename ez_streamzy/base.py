@@ -95,6 +95,11 @@ class StreamChain(Processor):
     def __rshift__(self, other):
         if isinstance(other, Processor):
             self.processors.append(other)
+        elif isinstance(other, StreamChain):
+            new_chain = StreamChain()
+            new_chain.processors = self.processors
+            new_chain.processors.append(other)
+            return new_chain
         else:
             raise TypeError("You can only add Processors or Outputs to a StreamChain")
         return self

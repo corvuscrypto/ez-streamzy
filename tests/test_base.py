@@ -67,32 +67,28 @@ def test_output_works_as_expected():
     # old one should be doubled now
     assert out_array == [2, 3, 2, 3]
 
-# def test_simple_mapping_works():
-#     """
-#     Ensure that Mapping maps all the records
-#     before actually releasing the records
-#     """
 
-#     fake_data = [
-#         {"id": 1, "value": 100.0},
-#         {"id": 1, "value": -10.0},
-#         {"id": 2, "value": 300.0},
-#         {"id": 2, "value": 200.0},
-#         {"id": 2, "value": 200.0},
-#         {"id": 1, "value": 1000.0},
-#         {"id": 4, "value": 10.0},
-#         {"id": 1, "value": 1.0},
-#         {"id": 5, "value": 10.0},
-#         {"id": 5, "value": -100.0},
-#     ]
+def test_sub_chains():
+    data = [2, 4, 1, 2]
+    extractor = Extractor(data)
+    # first create a single chain
+    # this one only adds 2
+    chain_1 = Add2Processor()
 
-#     source = Extractor(fake_data)
-#     mapper = InMemMapper()
-#     reducer = ValueReducer()
+    # create a chain that
+    # multiplies by two
+    chain_2 = Multiply2Processor()
 
-#     chain = source >> mapper >> reducer
+    # create a chain that
+    # multiplies by two and then adds by two
+    chain_3 = chain_2 >> chain_1
 
-#     expected_result = [(1, 1091.0), (2, 700.0), (4, 10.0), (5, -90.0)]
-#     assert list(chain) == expected_result
+    result_1 = list(extractor >> chain_1)
+    result_2 = list(extractor >> chain_2)
+    result_3 = list(extractor >> chain_2 >> chain_1)
+
+    assert result_1 == [4, 6, 3, 4]
+    assert result_2 == [4, 8, 2, 4]
+    assert result_3 == [6, 10, 4, 6]
 
 
