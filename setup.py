@@ -7,5 +7,6 @@ setup(
     description='Easy stream processing',
     author='Clifford Richardson',
     author_email='cmrallen@gmail.com',
-    install_requires=[]
+    install_requires=[],
+    tests_require=["pytest"]
 )
