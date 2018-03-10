@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/corvuscrypto/ez-streamzy.svg?branch=master)](https://travis-ci.org/corvuscrypto/ez-streamzy)
 # Ez-streamzy
 
 Ez-streamzy is meant to be an easy to use library that
