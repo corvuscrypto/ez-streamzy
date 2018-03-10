@@ -2,57 +2,11 @@
 Code for the base entities that manage stream operators
 that can act on a record of data.
 
-The base classes are Extractor, Processor, Mapper, Reducer,
-and Loader.
+The base classes are Extractor, Processor, and Output.
 """
 
 
-class GetAllRetriever(object):
-    def __init__(self, source, streamer):
-        self.source = source
-        self.started = False
-        self.streamer = streamer
-
-    def __iter__(self):
-        if not self.started:
-            self.started = True
-            for record in self.source:
-                self.streamer.process(record)
-        return self.streamer.extract()
-
-
-class StreamChain(object):
-    def __init__(self, generator=None):
-        self.generator = generator
-
-    def chain(self, streamer):
-        if not streamer.get_all:
-            self.generator = (streamer.process(x) for x in self.generator)
-        else:
-            self.generator = (x for x in GetAllRetriever(self.generator, streamer))
-
-    def __iter__(self):
-        return self.generator
-
-class Streamer(object):
-    """
-    Streamer is a base that all things inherit from
-    so that chaining is easily done.
-    """
-
-    get_all = False
-
-    def __init__(self):
-        self._chain = StreamChain()
-
-    def __iter__(self):
-        return (x for x in self._chain)
-
-    def __rshift__(self, other):
-        self._chain.chain(other)
-        return self
-
-class Processor(Streamer):
+class Processor(object):
     """
     Processor object which acts as a base for handling
     records in a streaming manner to process them using
@@ -61,8 +15,31 @@ class Processor(Streamer):
     def process(self, record):
         raise NotImplementedError
 
+    def __rshift__(self, other):
+        obj = other
+        if not hasattr(other, "processors"):
+            obj = StreamChain()
+        obj.processors.append(self)
+        return obj
 
-class Extractor(Streamer):
+
+class Output(Processor):
+    """
+    Output object which acts as a base for setting up
+    outputs in a stream chain. It has a method `out` that is implicitly
+    called by the `process` method.
+
+    The `out` method is to be overriden
+    """
+    def out(self, record):
+        raise NotImplementedError
+
+    def process(self, record):
+        self.out(record)
+        return record
+
+
+class Extractor(object):
     """
     Extractor object which acts as a base for extracting data
     from a source.
@@ -71,20 +48,53 @@ class Extractor(Streamer):
         source (iterable): An iterable source of data
     """
     def __init__(self, source):
-        self._chain = StreamChain(source)
+        self.source = source
+
+    def __rshift__(self, other):
+        obj = other
+        if not hasattr(other, "extractors"):
+            obj = StreamChain()
+            obj.processors.append(other)
+        obj.extractors.append(self)
+        return obj
+
+    def __iter__(self):
+        return (x for x in self.source)
 
 
-class Mapper(Streamer):
+class StreamChain(Processor):
     """
-    Mapper object that acts as a mapping base for taking
-    records and mapping them out based on a single field
-    value
+    This is the main chain representation that
+    dictates the path that a record follows in streamed processing.
     """
+    def __init__(self):
+        self.extractors = []
+        self.processors = []
 
-    get_all = True
+    def run(self):
+        for extractor in self.extractors:
+            for record in extractor:
+                self.process(record)
 
     def process(self, record):
-        self.map(record)
+        out = record
+        for processor in self.processors:
+            out = processor.process(out)
+        return out
 
-    def extract(self):
-        pass
+    @property
+    def _generator(self):
+        for extractor in self.extractors:
+            for record in extractor:
+                out = self.process(record)
+                yield out
+
+    def __iter__(self):
+        return (x for x in self._generator)
+
+    def __rshift__(self, other):
+        if isinstance(other, Processor):
+            self.processors.append(other)
+        else:
+            raise TypeError("You can only add Processors or Outputs to a StreamChain")
+        return self
