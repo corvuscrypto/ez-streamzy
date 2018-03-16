@@ -17,7 +17,7 @@ beneath the surface
 ## Quickstart
 
 The whole idea behind ez-streamzy is that everything you
-do using it should be relatively easy. There are two
+do using it should be relatively easy. There are three
 major base classes to know about:
 
 * Extractor
